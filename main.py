@@ -24,11 +24,13 @@ def fetch_earnings():
     start = today
     end = today + timedelta(days=6)
 
-    print(f"Checking earnings from {start.date()} to {end.date()}")
-    print(f"Entries found in feed: {len(feed.entries)}")
+    print(f"🔎 Checking earnings from {start.date()} to {end.date()}")
+    print(f"📰 Entries found in feed: {len(feed.entries)}")
 
     for entry in feed.entries:
         pub_date = datetime(*entry.published_parsed[:6], tzinfo=pytz.utc).astimezone(pytz.timezone('US/Eastern'))
+        print(f"📅 Entry date: {pub_date.date()} | Title: {entry.title}")
+
         if start.date() <= pub_date.date() <= end.date():
             date_str = pub_date.strftime('%A %b %d')
             title = entry.title
@@ -55,9 +57,10 @@ def send_to_discord(message):
     data = {"content": message}
     response = requests.post(WEBHOOK_URL, json=data)
     if response.status_code != 204:
-        print("Failed to send message:", response.text)
+        print("❌ Failed to send message:", response.text)
 
 if __name__ == "__main__":
     earnings = fetch_earnings()
     msg = format_message(earnings)
+    print(f"\n✅ Final message preview:\n{msg}")
     send_to_discord(msg)
