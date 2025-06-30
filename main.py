@@ -21,8 +21,8 @@ def fetch_earnings():
     earnings_by_day = {}
 
     today = datetime.now(pytz.timezone('US/Eastern'))
-    start = today + timedelta(days=(7 - today.weekday()))
-    end = start + timedelta(days=6)
+    start = today
+    end = today + timedelta(days=6)
 
     for entry in feed.entries:
         pub_date = datetime(*entry.published_parsed[:6], tzinfo=pytz.utc).astimezone(pytz.timezone('US/Eastern'))
