@@ -24,6 +24,9 @@ def fetch_earnings():
     start = today
     end = today + timedelta(days=6)
 
+    print(f"Checking earnings from {start.date()} to {end.date()}")
+    print(f"Entries found in feed: {len(feed.entries)}")
+
     for entry in feed.entries:
         pub_date = datetime(*entry.published_parsed[:6], tzinfo=pytz.utc).astimezone(pytz.timezone('US/Eastern'))
         if start.date() <= pub_date.date() <= end.date():
