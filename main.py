@@ -3,6 +3,7 @@ import feedparser
 from datetime import datetime, timedelta
 import pytz
 import os
+import re
 
 WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK")
 RSS_FEED = 'https://www.marketbeat.com/earnings/upcoming.rss'
@@ -16,31 +17,44 @@ SECTOR_EMOJIS = {
     'Industrial': '🏭'
 }
 
+# Extract date string from title like "on July 3, 2025"
+def extract_date_from_title(title):
+    match = re.search(r'on (\w+ \d{1,2}, \d{4})', title)
+    if match:
+        try:
+            return datetime.strptime(match.group(1), '%B %d, %Y')
+        except ValueError:
+            return None
+    return None
+
 def fetch_earnings():
     feed = feedparser.parse(RSS_FEED)
     earnings_by_day = {}
 
-    today = datetime.now(pytz.timezone('US/Eastern'))
-    start = today
+    today = datetime.now(pytz.timezone('US/Eastern')).date()
     end = today + timedelta(days=6)
 
-    print(f"🔎 Checking earnings from {start.date()} to {end.date()}")
+    print(f"🔎 Checking earnings from {today} to {end}")
     print(f"📰 Entries found in feed: {len(feed.entries)}")
 
     for entry in feed.entries:
-        pub_date = datetime(*entry.published_parsed[:6], tzinfo=pytz.utc).astimezone(pytz.timezone('US/Eastern'))
-        print(f"📅 Entry date: {pub_date.date()} | Title: {entry.title}")
+        title = entry.title
+        link = entry.link
+        earnings_date = extract_date_from_title(title)
 
-        if start.date() <= pub_date.date() <= end.date():
-            date_str = pub_date.strftime('%A %b %d')
-            title = entry.title
-            link = entry.link
-            ticker = title.split('(')[-1].split(')')[0]
-            sector = "Technology" if 'tech' in title.lower() else "Financial"
-            emoji = SECTOR_EMOJIS.get(sector, '📈')
-            if date_str not in earnings_by_day:
-                earnings_by_day[date_str] = []
-            earnings_by_day[date_str].append(f"{emoji} **{title}**\n<{link}>")
+        if earnings_date:
+            earnings_date_local = earnings_date.date()
+            print(f"📅 Found entry: {earnings_date_local} | Title: {title}")
+
+            if today <= earnings_date_local <= end:
+                date_str = earnings_date.strftime('%A %b %d')
+                ticker = title.split('(')[-1].split(')')[0]
+                sector = "Technology" if 'tech' in title.lower() else "Financial"
+                emoji = SECTOR_EMOJIS.get(sector, '📈')
+
+                if date_str not in earnings_by_day:
+                    earnings_by_day[date_str] = []
+                earnings_by_day[date_str].append(f"{emoji} **{title}**\n<{link}>")
     return earnings_by_day
 
 def format_message(earnings_by_day):
