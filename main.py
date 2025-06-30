@@ -17,12 +17,11 @@ SECTOR_EMOJIS = {
     'Industrial': '🏭'
 }
 
-# Extract date string from title like "on July 3, 2025"
 def extract_date_from_title(title):
     match = re.search(r'on (\w+ \d{1,2}, \d{4})', title)
     if match:
         try:
-            return datetime.strptime(match.group(1), '%B %d, %Y')
+            return datetime.strptime(match.group(1), '%B %d, %Y').date()
         except ValueError:
             return None
     return None
@@ -43,7 +42,7 @@ def fetch_earnings():
         earnings_date = extract_date_from_title(title)
 
         if earnings_date:
-            earnings_date_local = earnings_date.date()
+            earnings_date_local = earnings_date
             print(f"📅 Found entry: {earnings_date_local} | Title: {title}")
 
             if today <= earnings_date_local <= end:
