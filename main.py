@@ -1,13 +1,11 @@
-print("🧪 Running updated main.py with title-based date parsing...")
 import requests
-import feedparser
 from datetime import datetime, timedelta
 import pytz
 import os
 import re
 
 WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK")
-RSS_FEED = 'https://www.marketbeat.com/earnings/upcoming.rss'
+RSS_FEED = 'https://api.rss2json.com/v1/api.json?rss_url=https://www.marketbeat.com/earnings/upcoming.rss'
 
 SECTOR_EMOJIS = {
     'Technology': '💻',
@@ -28,33 +26,31 @@ def extract_date_from_title(title):
     return None
 
 def fetch_earnings():
-    feed = feedparser.parse(RSS_FEED)
+    response = requests.get(RSS_FEED)
+    data = response.json()
     earnings_by_day = {}
 
     today = datetime.now(pytz.timezone('US/Eastern')).date()
     end = today + timedelta(days=6)
 
     print(f"🔎 Checking earnings from {today} to {end}")
-    print(f"📰 Entries found in feed: {len(feed.entries)}")
+    print(f"📰 Entries found in feed: {len(data.get('items', []))}")
 
-    for entry in feed.entries:
-        title = entry.title
-        link = entry.link
+    for item in data.get("items", []):
+        title = item.get("title", "")
+        link = item.get("link", "")
         earnings_date = extract_date_from_title(title)
 
         if earnings_date:
-            earnings_date_local = earnings_date
-            print(f"📅 Found entry: {earnings_date_local} | Title: {title}")
-
-            if today <= earnings_date_local <= end:
+            print(f"📅 Found entry: {earnings_date} | Title: {title}")
+            if today <= earnings_date <= end:
                 date_str = earnings_date.strftime('%A %b %d')
-                ticker = title.split('(')[-1].split(')')[0]
                 sector = "Technology" if 'tech' in title.lower() else "Financial"
                 emoji = SECTOR_EMOJIS.get(sector, '📈')
-
                 if date_str not in earnings_by_day:
                     earnings_by_day[date_str] = []
                 earnings_by_day[date_str].append(f"{emoji} **{title}**\n<{link}>")
+
     return earnings_by_day
 
 def format_message(earnings_by_day):
